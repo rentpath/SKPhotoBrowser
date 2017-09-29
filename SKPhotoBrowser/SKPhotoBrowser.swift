@@ -141,7 +141,10 @@ open class SKPhotoBrowser: UIViewController {
         
         pagingScrollView.updateFrame(view.bounds, currentPageIndex: currentPageIndex)
         
-        toolbar.frame = frameForToolbarAtOrientation()
+        if #available(iOS 11, tvOS 11, *) {
+        } else {
+            toolbar.frame = frameForToolbarAtOrientation()
+        }
         
         // where did start
         delegate?.didShowPhotoAtIndex?(currentPageIndex)
@@ -417,20 +420,12 @@ internal extension SKPhotoBrowser {
 
 internal extension SKPhotoBrowser {
     func frameForToolbarAtOrientation() -> CGRect {
-        let currentOrientation = UIApplication.shared.statusBarOrientation
-        var height: CGFloat = navigationController?.navigationBar.frame.size.height ?? 44
-        if UIInterfaceOrientationIsLandscape(currentOrientation) {
-            height = 32
-        }
+        let height: CGFloat = navigationController?.navigationBar.frame.size.height ?? 44
         return CGRect(x: 0, y: view.bounds.size.height - height, width: view.bounds.size.width, height: height)
     }
     
     func frameForToolbarHideAtOrientation() -> CGRect {
-        let currentOrientation = UIApplication.shared.statusBarOrientation
-        var height: CGFloat = navigationController?.navigationBar.frame.size.height ?? 44
-        if UIInterfaceOrientationIsLandscape(currentOrientation) {
-            height = 32
-        }
+        let height: CGFloat = navigationController?.navigationBar.frame.size.height ?? 44
         return CGRect(x: 0, y: view.bounds.size.height + height, width: view.bounds.size.width, height: height)
     }
     
@@ -584,8 +579,18 @@ private extension SKPhotoBrowser {
     }
     
     func configureToolbar() {
-        toolbar = SKToolbar(frame: frameForToolbarAtOrientation(), browser: self)
-        view.addSubview(toolbar)
+        if #available(iOS 11, tvOS 11, *) {
+            toolbar = SKToolbar(frame: CGRect(x: 0, y: 0, width: 0, height: 0), browser: self)
+            toolbar.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(toolbar)
+            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor).isActive = true
+            toolbar.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor).isActive = true
+            toolbar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor).isActive = true
+            toolbar.heightAnchor.constraint(equalToConstant: 44)
+        } else {
+            toolbar = SKToolbar(frame: frameForToolbarAtOrientation(), browser: self)
+            view.addSubview(toolbar)
+        }
     }
     
     func setControlsHidden(_ hidden: Bool, animated: Bool, permanent: Bool) {
@@ -597,7 +602,15 @@ private extension SKPhotoBrowser {
                        animations: { () -> Void in
                         let alpha: CGFloat = hidden ? 0.0 : 1.0
                         self.toolbar.alpha = alpha
-                        self.toolbar.frame = hidden ? self.frameForToolbarHideAtOrientation() : self.frameForToolbarAtOrientation()
+                        if #available(iOS 11, tvOS 11, *) {
+                            if hidden {
+                                self.toolbar.heightAnchor.constraint(equalToConstant: 0)
+                            } else {
+                                self.toolbar.heightAnchor.constraint(equalToConstant: 44)
+                            }
+                        } else {
+                            self.toolbar.frame = hidden ? self.frameForToolbarHideAtOrientation() : self.frameForToolbarAtOrientation()
+                        }
                         
                         if SKPhotoBrowserOptions.displayCloseButton {
                             self.closeButton.alpha = alpha
